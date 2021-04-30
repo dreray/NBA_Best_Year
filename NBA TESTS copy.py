@@ -6,7 +6,7 @@
 from bs4 import *
 import requests
 import json
-import secrets # file that contains your API key
+
 import time 
 import json
 import csv
@@ -14,7 +14,7 @@ import urllib
 from csv import DictReader
 from operator import itemgetter
 
-from flask import Flask,  render_template
+from flask import Flask,  render_template, request, redirect, url_for
 import secrets
 import json
 import requests
@@ -31,7 +31,7 @@ with open('holyg.csv', 'r') as read_obj:
 
 
 for k in nba_dict:
-    k['holy_grail'] = float(k['holy_grail'])
+    k['holy_grail'] = round(float(k['holy_grail']),2)
     k['mvp_bonus'] = float(k['mvp_bonus'])
     k['fmvp_bonus'] = float(k['fmvp_bonus'])
 
@@ -57,7 +57,7 @@ def fetch_year(year):
     nba3 = nba_2
 
     i = 0 
-    while i < 7:
+    while i < 15:
 
         for count,result in enumerate(nba3):
 
@@ -80,7 +80,7 @@ def fetch_year(year):
     for removed_list in top_10:
         nba3.append(removed_list)
 
-    print(top_10)
+    #print(top_10)
     top_sort = sorted(top_10, key = itemgetter('holy_grail'), reverse=True)
 
     
@@ -91,78 +91,78 @@ def Goats(year_list):
 
     TOP_8 = {}
 
-    MVP = {}
-
-    #Total Season Score Leaders in {year}:
-
     for goats in year_list:
-        # print (f"{goats['Player']} generated a Total Season Score of {goats['holy_grail']}")
+        
         TOP_8[goats['Player']]= goats['holy_grail']
 
-    # for goats in year_list:
-
-    #     if goats['mvp_bonus'] > 1: 
-    #         TOP_8['MVP']= goats['Player']
-    #         MVP['MVP']= goats['Player']
-    #         break
-
-    # for goats in year_list:
-
-    #     if goats['fmvp_bonus'] > 1: 
-    #         TOP_8['Finals MVP']= goats['Player']
-    #         MVP['Finals MVP']= goats['Player']
-    #         break
-    # print('')
-    # for goats in year_list:
-        
-    #     if goats['all_team']  == '1st': 
-    #         print (f"{goats['Player']} made ALL NBA 1st Team ")
+    
 
 
-    print(TOP_8)
+  
     return(TOP_8)
-   
 
-            #nba_2.remove(max)
-            #top_25.append(result)
-                #top_holy = holy_grail
+def MVP(year_list):
 
+    MVP = {}
+    for goats in year_list:
 
-        #if year == nba_dict
-        #print(result)
-        # holy_grail >= top_holy:
+        if goats['mvp_bonus'] > 1: 
+            MVP['MVP']= goats['Player']
+            break
 
+    for goats in year_list:
 
-        # year = (result['title'])
-        # if count <6:
-        #     headline_count = f'{headline}'
-        #     headline_list.append(headline_count)
-        # count +=1
+            if goats['fmvp_bonus'] > 1:
+                MVP['Finals MVP']= goats['Player']
 
-    #return(headline_list)
-    #return(headline_list)
+    return(MVP)
 
+def ATeam(year_list):
 
-#fetch_year(2020)
+    all_t = {}
+    for goats in year_list:
+        
+        
+        if goats['all_team']  == '1st':
+            all_t[goats['Player']]= '1st Team'
 
+        if goats['all_team']  == '2nd':
+            all_t[goats['Player']]= '2nd Team'
+
+    #print(all_t)
+    return(all_t)
+
+#ATeam(fetch_year(2020))
 
 
 app = Flask(__name__)
 
-@app.route('/')
+@app.route('/', methods=['POST','GET'])
 def index():
-    return '<h1>Welcome NBA FAN! </h1> <h3>Add a Year between 1980 and 2020 into the URL (i.e /1995) to see which players had the best Season that year<h3>'
+    
+    if request.method == "POST":
+        nba_season = request.form['Years']
+        return redirect(url_for('Year',year=nba_season))
 
+    else: 
+        return render_template('input.html')
 
-
-@app.route('/<year>')
+@app.route('/<year>', methods=['POST','GET'])
 
 def Year(year):
 
-    lines = Goats(fetch_year(year))
+    top_player_dict = Goats(fetch_year(year))
+    mvp_dict = MVP(fetch_year(year))
+    all_nba = ATeam(fetch_year(year))
 
-    return render_template('nba.html', year=year,
-    headlines = lines) 
+    if request.method == "POST":
+        nba_season = request.form['Years']
+        return redirect(url_for('Year',year=nba_season))
+
+    else:
+        return render_template('nba.html', season=year,
+        goats = top_player_dict,mvp = mvp_dict,all_nba = all_nba) 
+
 
 
 if __name__ == '__main__':  
